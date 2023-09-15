@@ -1,47 +1,81 @@
 const fs = require('fs');
 
-class UserManager {
-    constructor(path) {
-        this.path = path;
+class ProductManager {
+  constructor() {
+    this.products = this.loadProducts();
+    this.productIdCounter = this.products.length > 0 ? Math.max(...this.products.map(product => product.id)) + 1 : 1;
+  }
+
+  loadProducts() {
+    try {
+      const data = fs.readFileSync('productos.json', 'utf-8');
+      return JSON.parse(data);
+    } catch (error) {
+      console.error('Error al cargar productos:', error.message);
+      return [];
+    }
+  }
+
+  saveProducts() {
+    fs.writeFileSync('productos.json', JSON.stringify(this.products, null, 2), 'utf-8');
+  }
+
+  addProduct(productData) {
+    const { title, description, price, thumbnail, code, stock } = productData;
+
+    
+    if (this.products.some((product) => product.code === code)) {
+      throw new Error("El producto con el mismo código ya existe.");
     }
 
+    const newProduct = {
+      id: this.productIdCounter++,
+      title,
+      description,
+      price,
+      thumbnail,
+      code,
+      stock,
+    };
 
-    getUsers = async () => {
-        try {
-            if (fs.existsSync(this.path)){
-                const data = await fs.promises.readFile(this.path, 'ustf-8');
-                const users = JSON.parse(data);
-                return users;
-            } else {
-                return [];
-            }
-        } catch (error) {
-            console.log(error);
-        }
+    this.products.push(newProduct);
+    this.saveProducts();
+    return newProduct;
+  }
+
+  getProducts() {
+    return this.products;
+  }
+
+  getProductById(productId) {
+    const product = this.products.find((product) => product.id === productId);
+    if (!product) {
+      throw new Error("Producto no encontrado.");
+    }
+    return product;
+  }
+
+  updateProduct(productId, updatedData) {
+    const productIndex = this.products.findIndex((product) => product.id === productId);
+    if (productIndex === -1) {
+      throw new Error("Producto no encontrado para actualizar.");
     }
 
-    createUser = async (usuario) => {
-        try {
-            const users = await this.getUsers();
+    const updatedProduct = { ...this.products[productIndex], ...updatedData };
+    this.products[productIndex] = updatedProduct;
+    this.saveProducts();
 
-            if (users.length === 0) {
-                usuario.id = 1;
-            } else {
-                usuario.id = users[users.length - 1].id + 1;
-            }
+    return updatedProduct;
+  }
 
-            users.push(usuario);
-            
-            await fs.promises.writeFile(this.path, JSON.stringify(users, null, '\t'))
-
-            return usuario;
-
-        } catch (error) {
-            console.log(error);
-        }
+  deleteProduct(productId) {
+    const initialProductCount = this.products.length;
+    this.products = this.products.filter((product) => product.id !== productId);
+    if (initialProductCount === this.products.length) {
+      throw new Error("Producto no encontrado para eliminar.");
     }
+    this.saveProducts();
+  }
 }
 
-module.exports = {
-    UserManager
-};
+module.exports = ProductManager;
