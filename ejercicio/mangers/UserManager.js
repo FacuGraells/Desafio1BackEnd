@@ -8,8 +8,16 @@ class ProductManager {
 
   loadProducts() {
     try {
-      const data = fs.readFileSync('productos.json', 'utf-8');
-      return JSON.parse(data);
+      const data = fs.readFileSync('productos.txt', 'utf-8');
+      const lines = data.split('\n');
+      const products = [];
+
+      lines.forEach((line) => {
+        const [id, title, description, price, thumbnail, code, stock] = line.split(',');
+        products.push({ id, title, description, price, thumbnail, code, stock });
+      });
+
+      return products;
     } catch (error) {
       console.error('Error al cargar productos:', error.message);
       return [];
@@ -17,13 +25,17 @@ class ProductManager {
   }
 
   saveProducts() {
-    fs.writeFileSync('productos.json', JSON.stringify(this.products, null, 2), 'utf-8');
+    const productLines = this.products.map((product) => {
+      return `${product.id},${product.title},${product.description},${product.price},${product.thumbnail},${product.code},${product.stock}`;
+    });
+    const data = productLines.join('\n');
+    fs.writeFileSync('productos.txt', data, 'utf-8');
   }
 
   addProduct(productData) {
     const { title, description, price, thumbnail, code, stock } = productData;
 
-    
+    // Verificar si el código ya existe en la lista de productos
     if (this.products.some((product) => product.code === code)) {
       throw new Error("El producto con el mismo código ya existe.");
     }
